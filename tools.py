@@ -13,6 +13,7 @@ Tools:
 """
 
 import os
+import re
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -59,18 +60,45 @@ def search_listings(
     Each listing dict has the following fields:
         id, title, description, category, style_tags (list), size,
         condition, price (float), colors (list), brand, platform
-
-    TODO:
-        1. Load all listings with load_listings().
-        2. Filter by max_price and size (if provided).
-        3. Score each remaining listing by keyword overlap with `description`.
-        4. Drop any listings with a score of 0 (no relevant matches).
-        5. Sort by score, highest first, and return the listing dicts.
-
-    Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    
+    # 1. Load all listings with load_listings().
+    listings = load_listings()
+
+    # Keywords from the description, lowercased and deduped.
+    keywords = set(re.findall(r"[a-z0-9]+", description.lower()))
+
+    size_query = size.strip().lower() if size else None
+
+    scored: list[tuple[int, dict]] = []
+    for listing in listings:
+        # 2.  Filter by max_price and size (if provided).
+        if max_price is not None and listing["price"] > max_price:
+            continue
+        if size_query is not None and size_query not in listing["size"].lower():
+            continue
+
+        # 3. Score each remaining listing by keyword overlap with `description`.
+        haystack = " ".join(
+            [
+                listing["title"],
+                listing["description"],
+                listing["category"],
+                " ".join(listing["style_tags"]),
+                " ".join(listing["colors"]),
+                listing["brand"] or "",
+            ]
+        ).lower()
+        haystack_words = set(re.findall(r"[a-z0-9]+", haystack))
+        score = len(keywords & haystack_words)
+
+        # 4. Drop any listings with a score of 0 (no relevant matches).
+        if score > 0:
+            scored.append((score, listing))
+
+    # 5. Sort by score, highest first, and return the listing dicts.
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [listing for _, listing in scored[:3]]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
