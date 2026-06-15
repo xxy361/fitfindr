@@ -127,8 +127,9 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     )
     if not session["search_results"]:
         session["error"] = (
-            "No listings matched your search. Try loosening the size or price "
-            "filters, or describing the item differently."
+            "Hmm, I couldn't find anything matching that right now. 😕 "
+            "Try loosening the size or price filters, or describing the item "
+            "differently."
         )
         return session
 
