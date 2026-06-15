@@ -1,5 +1,5 @@
 # tests/test_tools.py
-from tools import search_listings, suggest_outfit
+from tools import search_listings, suggest_outfit, create_fit_card
 from utils.data_loader import get_example_wardrobe, get_empty_wardrobe
 
 # A sample listing used to style across the suggest_outfit tests.
@@ -76,3 +76,26 @@ def test_suggest_outfit_empty_wardrobe():
     assert result.strip() != ""
     # Falls back to the "style from scratch" general-advice opening.
     assert "wardrobe is empty" in result.lower()
+
+
+# ── Tests for create_fit_card ─────────────────────────────────────────────────
+
+# Outfit case 1: real outfit string — produces a shareable caption.
+#          Expect a non-empty string that mentions the item's platform.
+def test_create_fit_card_real_outfit():
+    outfit = (
+        "Pair the Vintage Band Tee with your baggy straight-leg jeans and "
+        "black combat boots for a laid-back grunge vibe."
+    )
+    result = create_fit_card(outfit, SAMPLE_ITEM)
+    assert isinstance(result, str)
+    assert result.strip() != ""
+    # The item's platform should show up naturally in the caption.
+    assert SAMPLE_ITEM["platform"].lower() in result.lower()
+
+# Outfit case 2: empty outfit string — returns the fallback error message.
+#          Expect the guard string instead of a caption, never a crash.
+def test_create_fit_card_empty_outfit():
+    result = create_fit_card("", SAMPLE_ITEM)
+    assert isinstance(result, str)
+    assert "couldn't whip up a caption" in result.lower()

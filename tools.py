@@ -143,7 +143,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
             "piece: what kinds of items pair well with it, what vibe it suits, and "
             "how to build a look from scratch. Keep it warm and concise (2-4 "
             "sentences). Start with: \"Looks like your wardrobe is empty here, so "
-            "here's how I'd style this piece from scratch :\""
+            "here's how I'd style this piece from scratch:\""
         )
         user = f"New item — {item_text}"
     else:
@@ -211,14 +211,44 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     - Mention the item name, price, and platform naturally (once each)
     - Capture the outfit vibe in specific terms
     - Sound different each time for different inputs (use higher LLM temperature)
-
-    TODO:
-        1. Guard against an empty or whitespace-only outfit string.
-        2. Build a prompt that gives the LLM the item details and the outfit,
-           and asks for a caption matching the style guidelines above.
-        3. Call the LLM and return the response.
-
-    Before writing code, fill in the Tool 3 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+
+    # 1. Guard against an empty or whitespace-only outfit string.
+    if not outfit or not outfit.strip():
+        return (
+            "I couldn't whip up a caption without an outfit to work from — "
+            "let's find you a piece first and I'll make it shareable! ✨"
+        )
+
+    client = _get_groq_client()
+
+    name = new_item.get("title", "this piece")
+    price = new_item.get("price")
+    price_text = f"${price:g}" if price is not None else "a steal"
+    platform = new_item.get("platform", "secondhand")
+
+    # 2. Build a prompt with the item details and the outfit suggestion.
+    system = (
+        "You are FitFindr, writing short, shareable OOTD captions for social "
+        "media (Instagram/TikTok). Write 2-3 sentences that sound casual and "
+        "authentic — like a real outfit post, not a product description. "
+        "Naturally mention the item's name, price, and platform once each, the "
+        "owned pieces it's paired with, and capture the outfit's vibe in specific "
+        "terms. A couple of emojis are welcome."
+    )
+    user = (
+        f"New item: {name} — {price_text} on {platform}\n\n"
+        f"Outfit suggestion:\n{outfit.strip()}\n\n"
+        "Write the caption."
+    )
+
+    # 3. Call the LLM (higher temperature for variety) and return the caption.
+    response = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        temperature=0.9,
+    )
+    return response.choices[0].message.content.strip()
